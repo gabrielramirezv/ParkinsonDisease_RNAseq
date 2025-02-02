@@ -1,0 +1,226 @@
+---
+title: "Parkinson's Disease RNA-Seq analysis"
+author: "Gabriel Ramirez-Vilchis"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r selection}
+# Import libraries
+library(recount3)
+
+# List all available projects for mouse
+mouse_projects <- available_projects(organism = "mouse")
+
+# Extract the project information
+proj_info <- subset(
+  mouse_projects,
+  project == "SRP194918" & project_type == "data_sources"
+)
+
+# Create a recount object for the SRP058181 project
+rse_gene_SRP194918 <- create_rse(proj_info)
+rse_gene_SRP194918
+
+# Analyze the project
+rowData(rse_gene_SRP194918)
+rowRanges(rse_gene_SRP194918)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r formatting}
+# Import libraries
+library(recount3)
+library(SummarizedExperiment)
+
+# Transfrom nucleotide counts to read counts
+assay(rse_gene_SRP194918, "counts") <- compute_read_counts(rse_gene_SRP194918)
+
+# Add important data for analysis
+rse_gene_SRP194918 <- expand_sra_attributes(rse_gene_SRP194918)
+
+# Check the data format
+rse_gene_SRP194918$sra.sample_attributes[1:10]
+
+# Review data of interest
+colData(rse_gene_SRP194918)[
+  ,
+  grepl("^sra_attribute", colnames(colData(rse_gene_SRP194918)))
+]
+
+# Convert data types to factors
+rse_gene_SRP194918$sra_attribute.age <-
+  factor(rse_gene_SRP194918$sra_attribute.age)
+rse_gene_SRP194918$sra_attribute.injected_with <-
+  factor(rse_gene_SRP194918$sra_attribute.injected_with)
+rse_gene_SRP194918$sra_attribute.source_name <-
+  factor(rse_gene_SRP194918$sra_attribute.source_name)
+rse_gene_SRP194918$sra_attribute.strain <-
+  factor(rse_gene_SRP194918$sra_attribute.strain)
+rse_gene_SRP194918$sra_attribute.tissue <-
+  factor(rse_gene_SRP194918$sra_attribute.tissue)
+rse_gene_SRP194918$sra_attribute.treatment <-
+  factor(rse_gene_SRP194918$sra_attribute.treatment)
+
+# Summarize data
+summary(as.data.frame(colData(rse_gene_SRP194918)[
+  ,
+  grepl("^sra_attribute", colnames(colData(rse_gene_SRP194918)))
+]))
+
+## There are 17 samples
+## While the only relevant difference is the injection, we will analyze the
+## effects that it has in gene expression
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r filtering}
+# Import libraries
+library(SummarizedExperiment)
+library(edgeR)
+
+# Check quality of the data
+rse_gene_SRP194918$assigned_gene_prop <-
+  rse_gene_SRP194918$recount_qc.gene_fc_count_all.assigned /
+  rse_gene_SRP194918$recount_qc.gene_fc_count_all.total
+summary(rse_gene_SRP194918$assigned_gene_prop)
+
+# Observe differences among samples injected with different substances
+with(colData(rse_gene_SRP194918),
+     tapply(assigned_gene_prop,
+            sra_attribute.injected_with,
+            summary))
+
+# Plot the distribution of the assigned gene proportion
+hist(rse_gene_SRP194918$assigned_gene_prop, col = "purple")
+
+# Save the unfiltered data
+rse_gene_SRP194918_unfiltered <- rse_gene_SRP194918
+
+# Filter genes with low expression
+rse_gene_SRP194918 <-
+  rse_gene_SRP194918[edgeR::filterByExpr(rse_gene_SRP194918),]
+
+# Plot the distribution of the assigned gene proportion after filtering
+hist(rse_gene_SRP194918$assigned_gene_prop, col = "purple")
+
+# Check the expression of genes that were not filtered out
+gene_means <- rowMeans(assay(rse_gene_SRP194918, "counts"))
+summary(gene_means)
+
+# Check the percentage of genes that were not filtered out
+round(nrow(rse_gene_SRP194918) / nrow(rse_gene_SRP194918_unfiltered) * 100, 2)
+```
+
+script 4
+
+```{r normalization}
+# Import libraries
+library(edgeR)
+
+# Create the list for normalization
+dge <- DGEList(counts = assay(rse_gene_SRP194918, "counts"),
+               genes = rowData(rse_gene_SRP194918))
+
+# Calculate the normalization factors
+dge <- calcNormFactors(dge)
+```
+
+last script
+
+```{r analysis}
+# Import libraries
+library(ggplot2)
+library(limma)
+library(pheatmap)
+library(RColorBrewer)
+
+# Plot gene expression according to the injection group
+ggplot(as.data.frame(colData(rse_gene_SRP194918)),
+       aes(y = assigned_gene_prop,
+           x = sra_attribute.injected_with)) +
+  geom_boxplot() +
+  theme_bw(base_size = 20) +
+  ylab("Assigned Gene Prop") +
+  xlab("Injection Group") +
+  theme_classic()
+
+# Create the model matrix according to the injection group
+mod <- model.matrix(~ sra_attribute.injected_with + assigned_gene_prop,
+                    data = colData(rse_gene_SRP194918)
+)
+colnames(mod)
+# Estimate the mean-variance relationship
+vGene <- voom(dge, mod, plot = TRUE)
+
+# Compute statistics by Bayes method
+eb_results <- eBayes(lmFit(vGene))
+
+# Extract the top genes
+de_results <- topTable(
+  eb_results,
+  coef = c(2, 3),
+  number = nrow(rse_gene_SRP194918),
+  sort.by = "none"
+)
+
+# Calculate the number of significant genes
+table(de_results$adj.P.Val < 0.05)
+
+# Plot the results
+plotMA(eb_results, coef = 2)
+plotMA(eb_results, coef = 3)
+volcanoplot(eb_results, coef = 2, highlight = 3, names = de_results$gene_name)
+volcanoplot(eb_results, coef = 3, highlight = 3, names = de_results$gene_name)
+
+# Review the top genes information
+de_results[de_results$gene_name %in% c("Jchain", "Lox", "Slc2a5"), ]
+de_results[de_results$gene_name %in% c("Gm15564", "Gm23935", "Mir6236"), ]
+
+# Heatmap of the 50 top genes
+exprs_heatmap <- vGene$E[rank(de_results$adj.P.Val) <= 50, ]
+
+# Create a dataframe with the injection group
+df <- as.data.frame(colData(rse_gene_SRP194918)$sra_attribute.injected_with)
+
+# Rename the columns and rows
+colnames(df) <- c("Injection")
+rownames(df) <- colnames(exprs_heatmap)
+
+# Change the gene ID for the gene name
+row.names(exprs_heatmap) <-
+  de_results$gene_name[rank(de_results$adj.P.Val) <= 50]
+
+# Create the heatmap
+pheatmap(
+  exprs_heatmap,
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  show_colnames = FALSE,
+  annotation_col = df,
+  scale = "row",
+)
+
+# MDS plot according to the injection group
+col.group <- df$Injection
+levels(col.group) <- brewer.pal(nlevels(col.group), "Set1")
+col.group <- as.character(col.group)
+plotMDS(vGene$E, labels = df$Injection, col = col.group)
+
+```
