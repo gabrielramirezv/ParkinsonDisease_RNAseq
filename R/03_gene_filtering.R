@@ -1,5 +1,6 @@
 # Import libraries
-library(SummarizedExperiment))
+library(SummarizedExperiment)
+library(edgeR)
 
 # Check quality of the data
 rse_gene_SRP194918$assigned_gene_prop <-
