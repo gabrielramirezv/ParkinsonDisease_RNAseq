@@ -1,6 +1,5 @@
 # Import libraries
 library(recount3)
-library(edgeR)
 
 # List all available projects for mouse
 mouse_projects <- available_projects(organism = "mouse")
