@@ -11,7 +11,7 @@ proj_info <- subset(
   project == "SRP194918" & project_type == "data_sources"
 )
 
-# Create a recount object for the SRP058181 project
+# Create a recount object for the SRP194918 project
 rse_gene_SRP194918 <- create_rse(proj_info)
 rse_gene_SRP194918
 
