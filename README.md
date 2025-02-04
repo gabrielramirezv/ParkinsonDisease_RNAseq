@@ -1,4 +1,4 @@
-# SARS-CoV-2 in wastewater
+# Parkinson’s Disease RNA-Seq analysis
 
 Parkinson’s disease (PD) is a neurodegenerative disorder. It consists of neuronal loss in the substantia nigra, which causes striatal dopamine deficiency, and intracellular inclusions containing aggregates of α-synuclein (α-syn) are the neuropathological hallmarks of PD. In this project, RNA-seq data from mice with induced α-syn accumulation is analyzed in order to learn more about microglia role in PD (Poewe et al. 2017).
 
