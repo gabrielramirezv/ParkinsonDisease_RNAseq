@@ -38,13 +38,10 @@ table(de_results$adj.P.Val < 0.05)
 
 # Plot the results
 plotMA(eb_results, coef = 2)
-plotMA(eb_results, coef = 3)
 volcanoplot(eb_results, coef = 2, highlight = 3, names = de_results$gene_name)
-volcanoplot(eb_results, coef = 3, highlight = 3, names = de_results$gene_name)
 
 # Review the top genes information
 de_results[de_results$gene_name %in% c("Jchain", "Lox", "Slc2a5"), ]
-de_results[de_results$gene_name %in% c("Gm15564", "Gm23935", "Mir6236"), ]
 
 # Heatmap of the 50 top genes
 exprs_heatmap <- vGene$E[rank(de_results$adj.P.Val) <= 50, ]
