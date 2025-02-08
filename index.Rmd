@@ -20,15 +20,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Parkinson's disease (PD) is a neurodegenerative disorder. It consists of 
 neuronal loss in the substantia nigra, which causes striatal dopamine 
-deficiency, and intracellular inclusions containing aggregates of α-synuclein 
-(α-syn) are the neuropathological hallmarks of PD. In this project, RNA-seq 
-data from mice with induced α-syn accumulation is analyzed in order to learn 
-more about microglia role in PD [@Poewe2017].  
+deficiency. Important hallmarks of PD are aggregates of α-synuclein 
+(α-syn). In this project, RNA-seq data from mice with induced α-syn 
+accumulation is analyzed in order to learn more about microglia role in PD 
+[@Poewe2017].  
 
 # Antecedents and data source  
 
 It is known that activated microglia is usually present in PD and it can 
-promote α-synu aggregation. Nevertheless, it is not yet completely 
+promote α-syn aggregation. Nevertheless, it is not yet completely 
 understood how microglia participates in α-syn cell-to-cell transfer.  
 
 In order to study so, a research group analyzed α-syn propagation between 
@@ -43,11 +43,11 @@ is available at <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE130683>.
 
 # Hypothesis  
 
-Stimulation of microglia affects α-syn transfer between neronal cells.  
+Stimulation of microglia affects α-syn transfer between neuronal cells.  
 
 # Objective  
 
-Analyze RNA-seq data from mice with induced α-syn accumulation in order to 
+To analyze RNA-seq data from mice with induced α-syn accumulation in order to 
 determine the effect of microglia stimulation on α-syn transfer between cells.
 
 # Data processing
@@ -99,7 +99,7 @@ The data is transformed to read counts and important data for analysis is
 added. The data types are converted to factors and the data is summarized.  
 
 ```{r formatting}
-# Transfrom nucleotide counts to read counts
+# Transform nucleotide counts to read counts
 assay(rse_gene_SRP194918, "counts") <- compute_read_counts(rse_gene_SRP194918)
 
 # Add important data for analysis
@@ -157,7 +157,7 @@ with(colData(rse_gene_SRP194918),
 
 # Plot the distribution of the assigned gene proportion
 hist(rse_gene_SRP194918$assigned_gene_prop, 
-     col = "purple", 
+     col = "#fd8d3c", 
      main = "Assigned Gene Proportion", 
      xlab = "Assigned Gene Proportion")
 
@@ -170,7 +170,7 @@ rse_gene_SRP194918 <-
 
 # Plot the distribution of the assigned gene proportion after filtering
 hist(rse_gene_SRP194918$assigned_gene_prop, 
-     col = "purple", 
+     col = "#fd8d3c", 
      main = "Filtered Assigned Gene Proportion",
      xlab = "Assigned Gene Proportion")
 
@@ -195,7 +195,7 @@ dge <- DGEList(counts = assay(rse_gene_SRP194918, "counts"),
 dge <- calcNormFactors(dge)
 ```
 
-## Differential expression analysis
+# Differential expression analysis
 
 The differential expression analysis is performed using the _limma_ package.  
 
@@ -289,7 +289,10 @@ expression, and this is because LPS was a potent activator of microglia.
 The differential expression analysis showed that the group injected with LPS 
 was slightly more affected than the group injected with PBS. This is because 
 LPS is a potent activator of microglia, and it is known that activated 
-microglia can promote α-syn aggregation. Also, the 3 top genes that were most 
+microglia can promote α-syn aggregation. It is imortant to mention that model 
+was built using coefficients 2 and 3, because those were the columns 
+indicating injections with either PBS or LPS (if none of them, that means that 
+the sample was injected with IL-4) Also, the 3 top genes that were most 
 differentially expressed in the group injected with LPS were Jchain, Lox, and 
 Slc2a5. These genes are related to the immune response, oxidative stress, and 
 glucose transport, respectively; and they are also involved in inflammation, 
